@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>荆轲刺秦大探秘</title>
+    <style>
+        /* 基础重置：解决点击和尺寸问题 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            touch-action: manipulation; /* 解决手机点击延迟 */
+        }
+        body {
+            padding: 10px;
+            font-family: "SimSun", serif;
+            background-image: url("战国背景图.jpg"); /* 本地背景图片 */
+            background-size: cover;
+            background-attachment: fixed;
+            background-position: center;
+            min-height: 100vh;
+            color: #f8f4ea;
+            line-height: 1.5;
+            overflow-x: hidden; /* 防止横向滚动条 */
+        }
+        /* 计时器置顶优化：固定定位在顶部，始终可见 */
+        .timer {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 1000;
+            text-align: center;
+            font-size: 16px;
+            font-weight: bold;
+            color: #9e2a2b;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        /* 容器：确保内容居中 */
+        .main-container {
+            width: 100%;
+            margin: 0 auto;
+            padding: 10px 5px;
+            background-color: rgba(40, 20, 15, 0.9);
+            border-radius: 8px;
+            border: 1px solid #c9a87a;
+            margin-bottom: 20px;
+            margin-top: 50px; /* 为计时器留出空间 */
+        }
+        /* 两栏布局：始终左右并列 */
+        .columns-wrap {
+            display: flex;
+            gap: 8px; /* 减小间距 */
+            width: 100%;
+            padding: 5px;
+        }
+        .column {
+            flex: 1; /* 两栏平均分配宽度 */
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            transition: all 0.5s ease; /* 添加过渡效果 */
+        }
+        /* 标题：精简尺寸 */
+        .column-title {
+            text-align: center;
+            font-size: 14px;
+            color: #f8d7a4;
+            margin-bottom: 5px;
+            padding-bottom: 3px;
+            border-bottom: 1px solid #9e2a2b;
+            font-weight: bold;
+        }
+        /* 左栏卡片：适应手机竖屏 */
+        .word-card {
+            width: 100%;
+            min-height: 220px; /* 大幅降低高度 */
+            padding: 8px;
+            border-radius: 5px;
+            font-size: 13px; /* 减小字体 */
+            line-height: 1.5;
+            text-align: justify;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid #c9a87a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            background-color: rgba(60, 30, 20, 0.9);
+            color: #f8f4ea;
+            overflow: hidden; /* 防止内容溢出 */
+            transition: all 0.5s ease; /* 添加过渡效果 */
+        }
+        /* 回目样式 */
+        .chapter-num {
+            display: inline-block;
+            background-color: #9e2a2b;
+            color: white;
+            padding: 1px 5px;
+            margin-right: 3px;
+            margin-bottom: 3px;
+            border-radius: 2px;
+            font-size: 12px;
+        }
+        /* 右栏卡片：适应手机竖屏 */
+        .meaning-card {
+            width: 100%;
+            min-height: 220px; /* 与左栏保持一致 */
+            padding: 8px;
+            padding-bottom: 30px;
+            border-radius: 5px;
+            font-size: 13px;
+            font-weight: bold;
+            color: #f8d7a4;
+            text-align: center;
+            cursor: pointer;
+            user-select: none;
+            border: 1px solid #c9a87a;
+            position: relative;
+            background-color: rgba(60, 30, 20, 0.9);
+            background-size: contain;
+            background-position: center;
+            background-repeat: no-repeat;
+            transition: all 0.5s ease; /* 添加过渡效果 */
+        }
+        /* 右栏文字：固定在底部 */
+        .meaning-card span {
+            position: absolute;
+            bottom: 5px;
+            left: 0;
+            width: 100%;
+            padding: 5px;
+            background-color: rgba(40, 20, 15, 0.9);
+            border-radius: 3px;
+            border: 1px solid #c9a87a;
+            font-size: 13px;
+        }
+        /* 图片加载失败提示 */
+        .meaning-card.no-image::before {
+            content: '📷';
+            font-size: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #9e2a2b;
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #604030;
+        }
+        /* 选中状态 */
+        .selected {
+            border: 2px solid #9e2a2b;
+            box-shadow: 0 2px 5px rgba(158, 42, 43, 0.5);
+            transform: scale(1.01);
+        }
+        /* 消失动画 - 改进版 */
+        .fade-out {
+            opacity: 0;
+            height: 0 !important; /* 强制高度为0 */
+            min-height: 0 !important; /* 覆盖min-height */
+            margin: 0 !important;
+            padding: 0 !important;
+            overflow: hidden;
+            border: none;
+            transition: all 0.5s ease;
+        }
+        /* 音乐控制按钮 */
+        .music-control {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background-color: rgba(255, 249, 235, 0.95);
+            border: 1px solid #c9a87a;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            z-index: 1000;
+            font-size: 18px;
+            color: #9e2a2b;
+        }
+        /* 游戏开始页面样式 */
+        .start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(40, 20, 15, 0.95);
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+            text-align: center;
+        }
+        .historical-intro {
+            font-size: 16px;
+            color: #f8d7a4;
+            margin-bottom: 15px;
+            line-height: 1.6;
+            font-style: italic;
+        }
+        .start-title {
+            font-size: 24px;
+            color: #f8d7a4;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .start-desc {
+            font-size: 14px;
+            color: #f8f4ea;
+            line-height: 1.6;
+            margin-bottom: 25px;
+            max-width: 90%;
+        }
+        .start-btn {
+            padding: 10px 25px;
+            font-size: 16px;
+            background-color: #9e2a2b;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        /* 匹配成功弹窗样式 */
+        .success-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.8);
+            z-index: 2000;
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 15px;
+        }
+        .success-img {
+            width: 150px;
+            height: 150px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            object-fit: cover;
+            border: 2px solid #f8f4ea;
+        }
+        .success-text {
+            font-size: 18px;
+            color: white;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+        .poem {
+            font-size: 14px;
+            color: #f8d7a4;
+            text-align: center;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            font-style: italic;
+        }
+        .restart-btn {
+            padding: 8px 20px;
+            font-size: 14px;
+            background-color: #9e2a2b;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        /* 音乐状态提示 */
+        .music-hint {
+            position: fixed;
+            top: 55px;
+            right: 10px;
+            background-color: rgba(255, 249, 235, 0.9);
+            border: 1px solid #c9a87a;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            color: #9e2a2b;
+            z-index: 1000;
+            display: none;
+        }
+        /* 错误提示样式 - 确保在手机上可见 */
+        .error-toast {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(158, 42, 43, 0.9);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 6px;
+            font-size: 16px;
+            z-index: 3000;
+            display: none;
+            animation: fadeInOut 1.5s ease;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+
+        /* 针对小屏手机的额外优化 */
+        @media (max-width: 360px) {
+            .word-card, .meaning-card {
+                min-height: 200px;
+                font-size: 12px;
+            }
+            .column-title {
+                font-size: 13px;
+            }
+            .start-title {
+                font-size: 22px;
+            }
+            .error-toast {
+                font-size: 14px;
+                padding: 10px 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- 置顶计时器 -->
+    <div class="timer" id="timer">00:00</div>
+    
+    <!-- 音乐控制按钮 -->
+    <div class="music-control" id="musicControl">▶</div>
+    <div class="music-hint" id="musicHint">点击播放音乐</div>
+    
+    <!-- 错误提示组件 -->
+    <div class="error-toast" id="errorToast">猜错啦，再试试！</div>
+    
+    <!-- 游戏开始页面（默认显示） -->
+    <div class="start-screen" id="startScreen">
+        <h2 class="start-title">荆轲刺秦大探秘</h2>
+        <div class="historical-intro">
+            秦王政二十年（公元前227年）<br>
+            咸阳宫刺杀现场<br>
+            荆轲为何功败垂成？
+        </div>
+        <p class="start-desc">
+            游戏规则：<br>
+            左栏是刺秦七个关键时刻<br>
+            右栏是刺秦七个关键人物<br>
+            点击左右栏完成七个匹配<br>
+            感受荆轲刺秦的荡气回肠
+        </p>
+        <button class="start-btn" id="startBtn">开始探秘</button>
+    </div>
+    
+    <!-- 匹配成功弹窗（默认隐藏） -->
+    <div class="success-modal" id="successModal">
+        <img src="英雄荆轲.jpg" alt="英雄荆轲形象" class="success-img" id="successImage">
+        <div class="success-text" id="successText">恭喜！你已还原刺秦事件全貌！总用时：00:00</div>
+        <div class="poem">
+            燕丹善养士，志在报强嬴。<br>
+            招集百夫良，岁暮得荆卿。<br>
+            惜哉剑术疏，奇功遂不成。<br>
+            其人虽已没，千载有余情。
+        </div>
+        <button class="restart-btn" id="restartBtn">重新探秘</button>
+    </div>
+    
+    <!-- 游戏主容器（默认隐藏，开始后显示） -->
+    <div class="main-container" id="gameContainer" style="display: none;">
+        <div class="columns-wrap">
+            <!-- 左栏：荆轲刺秦章节（按顺序） -->
+            <div class="column" id="wordColumn">
+                <h3 class="column-title">荆轲刺秦·章节</h3>
+                <!-- 动态内容将在这里生成 -->
+            </div>
+            <!-- 右栏：历史人物（随机） -->
+            <div class="column" id="meaningColumn">
+                <h3 class="column-title">对应历史人物</h3>
+                <!-- 动态内容将在这里生成 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 背景音乐元素 -->
+    <audio id="backgroundMusic" loop preload="auto" style="display:none">
+        <source src="悬疑音乐.mp3" type="audio/mpeg">
+        <source src="古风悬疑音乐.mp3" type="audio/mpeg">
+        <source src="https://assets.mixkit.co/music/preview/mixkit-suspense-ambient-585.mp3" type="audio/mpeg">
+    </audio>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    /* ================= 全局变量 ================= */
+    let selectedWordId = null;
+    let matchedPairs   = 0;
+    let startTime      = null;
+    let timerInterval  = null;
+    let isMusicPlaying = false;
+
+    /* ================= DOM获取 ================= */
+    const timerEl         = document.getElementById('timer');
+    const musicControl    = document.getElementById('musicControl');
+    const musicHint       = document.getElementById('musicHint');
+    const backgroundMusic = document.getElementById('backgroundMusic');
+    const startScreen     = document.getElementById('startScreen');
+    const startBtn        = document.getElementById('startBtn');
+    const gameContainer   = document.getElementById('gameContainer');
+    const successModal    = document.getElementById('successModal');
+    const successText     = document.getElementById('successText');
+    const restartBtn      = document.getElementById('restartBtn');
+    const wordColumn      = document.getElementById('wordColumn');
+    const meaningColumn   = document.getElementById('meaningColumn');
+    const errorToast      = document.getElementById('errorToast'); // 错误提示元素
+
+    /* ================= 数据 & 工具函数 ================= */
+    const characters = [
+        { id: "1", chapter: "第一回", text: "那个男人对秦王嬴政怀有深仇大恨。他逃回燕国，誓要雪耻，招人刺秦，最希望劫持秦王归还失地，否则格杀勿论。他是谁？", meaningId: "1", meaningText: "燕太子丹", image: "燕太子丹.jpg" },
+        { id: "2", chapter: "第二回", text: "荆轲接下刺秦令，却缺少两样“门票”：秦王仇人的头与燕国地图。那个男人一听“借头”，二话不说，拔剑自刎。他是谁？", meaningId: "2", meaningText: "秦将樊於期", image: "秦将樊於期.jpg" },
+        { id: "3", chapter: "第三回", text: "荆轲要找个副手，听说那个男人十三岁就杀人，勇武非常，大街上没人敢与他对视。荆轲收了他，刺秦有了双保险。他是谁？", meaningId: "3", meaningText: "副使秦舞阳", image: "副使秦舞阳.jpg" },
+        { id: "4", chapter: "第四回", text: "刚走近咸阳宫殿，副手突然脸白如纸，双腿抖到佩剑叮当。那个男人只得带着全燕国乃至全天下的希望，孤身上殿。他是谁？", meaningId: "4", meaningText: "刺客荆轲", image: "刺客荆轲.jpg" },
+        { id: "5", chapter: "第五回", text: "地图展到尽头，寒光一闪，匕首出现，那个男人冷汗直流。他被荆轲左手抓袖，右手直刺，衣袖撕裂，竟侥幸脱身。他是谁？", meaningId: "5", meaningText: "秦王嬴政", image: "秦王嬴政.jpg" },
+        { id: "6", chapter: "第六回", text: "秦王长剑卡在鞘内，越急越拔不出，群臣手上也无兵器，那个男人突然掷出药囊，正中荆轲，刹那间拖出一线生机。他是谁？", meaningId: "6", meaningText: "侍医夏无且", image: "侍医夏无且.jpg" },
+        { id: "7", chapter: "第七回", text: "秦王在背上拔出宝剑，斩断荆轲左腿，那个男人倚柱大笑，将匕首最后一掷，可惜不中，反被斩杀，血溅咸阳宫中。他是谁？", meaningId: "7", meaningText: "英雄荆轲", image: "英雄荆轲.jpg" }
+    ];
+    
+    function shuffleArray(array) { 
+        const newArr = [...array]; 
+        for (let i = newArr.length - 1; i > 0; i--) { 
+            const j = Math.floor(Math.random() * (i + 1)); 
+            [newArr[i], newArr[j]] = [newArr[j], newArr[i]]; 
+        } 
+        return newArr; 
+    }
+    
+    function renderGameCards() { 
+        // 清空之前的内容
+        wordColumn.innerHTML = '<h3 class="column-title">荆轲刺秦·章节</h3>';
+        meaningColumn.innerHTML = '<h3 class="column-title">对应历史人物</h3>';
+        
+        // 左栏按原始顺序排列（第一回到第七回）
+        characters.forEach(character => {
+            const card = document.createElement('div');
+            card.className = `word-card`;
+            card.setAttribute('data-id', character.id);
+            card.innerHTML = `<span class="chapter-num">${character.chapter}</span>${character.text}`;
+            wordColumn.appendChild(card);
+        });
+
+        // 右栏随机排序
+        const shuffledMeanings = shuffleArray(characters);
+        shuffledMeanings.forEach(character => {
+            const card = document.createElement('div');
+            card.className = `meaning-card`;
+            card.setAttribute('data-meaning-id', character.meaningId);
+            card.innerHTML = `<span>${character.meaningText}</span>`;
+            
+            // 设置本地图片背景
+            const imgUrl = `url('${character.image}')`;
+            const style = document.createElement('style');
+            style.textContent = `
+                .meaning-card[data-meaning-id="${character.meaningId}"] {
+                    background-image: ${imgUrl};
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 监听图片加载失败事件
+            const img = new Image();
+            img.src = character.image;
+            img.onerror = function() {
+                card.classList.add('no-image');
+            };
+            
+            meaningColumn.appendChild(card);
+        });
+
+        // 绑定卡片点击事件
+        bindCardEvents();
+    }
+    
+    // 显示错误提示
+    function showErrorToast() {
+        errorToast.style.display = 'block';
+        // 1.5秒后隐藏提示
+        setTimeout(() => {
+            errorToast.style.display = 'none';
+        }, 1500);
+    }
+    
+    // 绑定卡片点击事件
+    function bindCardEvents() {
+        // 左栏卡片点击事件
+        const wordCards = document.querySelectorAll('.word-card');
+        wordCards.forEach(card => {
+            card.addEventListener('click', function() {
+                // 点击卡片时尝试播放音乐
+                if (!isMusicPlaying) {
+                    backgroundMusic.play().then(() => {
+                        isMusicPlaying = true;
+                        musicControl.textContent = "⏸";
+                        musicHint.style.display = 'none';
+                    }).catch(e => console.log("播放失败:", e));
+                }
+                
+                wordCards.forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedWordId = this.getAttribute('data-id');
+            });
+        });
+
+        // 右栏卡片点击事件
+        const meaningCards = document.querySelectorAll('.meaning-card');
+        meaningCards.forEach(card => {
+            card.addEventListener('click', function() {
+                if (!selectedWordId) return;
+                
+                const correctMeaningId = characters.find(c => c.id === selectedWordId).meaningId;
+                const cardMeaningId = this.getAttribute('data-meaning-id');
+                
+                if (correctMeaningId === cardMeaningId) {
+                    const matchedWord = document.querySelector(`.word-card[data-id="${selectedWordId}"]`);
+                    if (matchedWord) {
+                        // 添加消失类
+                        matchedWord.classList.add('fade-out');
+                        this.classList.add('fade-out');
+                        
+                        // 等待动画完成后移除元素，使下方卡片上移
+                        setTimeout(() => {
+                            matchedWord.remove();
+                            this.remove();
+                            matchedPairs++;
+                            
+                            // 全部匹配成功
+                            if (matchedPairs === 7) {
+                                clearInterval(timerInterval);
+                                backgroundMusic.volume = 0.3;
+                                successText.textContent = `恭喜！你已还原刺秦事件全貌！总用时：${timerEl.textContent}`;
+                                successModal.style.display = 'flex';
+                            }
+                        }, 500); // 与CSS过渡时间一致
+                    }
+                    selectedWordId = null;
+                } else {
+                    // 显示自定义错误提示而非浏览器默认alert
+                    showErrorToast();
+                    wordCards.forEach(c => c.classList.remove('selected'));
+                    selectedWordId = null;
+                }
+            });
+        });
+    }
+
+    function updateTimer() { 
+        const diff = Math.floor((new Date() - startTime) / 1000); 
+        timerEl.textContent = `${String(Math.floor(diff / 60)).padStart(2, '0')}:${String(diff % 60).padStart(2, '0')}`; 
+    }
+    
+    function startGame() { 
+        matchedPairs = 0; 
+        selectedWordId = null; 
+        startTime = new Date(); 
+        clearInterval(timerInterval); 
+        timerInterval = setInterval(updateTimer, 1000); 
+        updateTimer(); 
+        startScreen.style.display = 'none'; 
+        gameContainer.style.display = 'block'; 
+        renderGameCards(); 
+        
+        // 尝试播放音乐
+        backgroundMusic.play().then(() => {
+            isMusicPlaying = true;
+            musicControl.textContent = "⏸";
+            musicHint.style.display = 'none';
+        }).catch(e => {
+            console.log("自动播放需要用户交互:", e);
+            isMusicPlaying = false;
+            musicControl.textContent = "▶";
+            musicHint.style.display = 'block';
+        });
+    }
+    
+    function resetGame() { 
+        successModal.style.display = 'none'; 
+        backgroundMusic.volume = 1;
+        startGame(); 
+    }
+
+    /* 音乐按钮控制 */
+    musicControl.addEventListener('click', () => {
+        if (isMusicPlaying) { 
+            backgroundMusic.pause(); 
+            isMusicPlaying = false; 
+            musicControl.textContent = '▶'; 
+        } else { 
+            backgroundMusic.play().then(() => { 
+                isMusicPlaying = true; 
+                musicControl.textContent = '⏸'; 
+                musicHint.style.display = 'none'; 
+            }).catch(e => {
+                console.log("播放失败:", e);
+                musicHint.style.display = 'block';
+            }); 
+        }
+    });
+
+    // 监听音乐播放状态
+    backgroundMusic.addEventListener('play', function() {
+        isMusicPlaying = true;
+        musicControl.textContent = "⏸";
+    });
+    
+    backgroundMusic.addEventListener('pause', function() {
+        isMusicPlaying = false;
+        musicControl.textContent = "▶";
+    });
+
+    startBtn.addEventListener('click', startGame);
+    restartBtn.addEventListener('click', resetGame);
+});
+</script>
+</body>
+</html>
+    
